@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { Menu, X, Leaf } from "lucide-react";
+import { Menu, X, Leaf, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { label: "Home", path: "/" },
   { label: "Browse Kits", path: "/kits" },
+  { label: "My Profile", path: "/profile" },
   { label: "About", path: "/about" },
 ];
 
