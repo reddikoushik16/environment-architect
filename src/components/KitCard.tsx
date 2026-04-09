@@ -41,7 +41,7 @@ export function KitCard({ kit }: KitCardProps) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">${kit.totalCost}</span>
+        <span className="text-xs text-muted-foreground">{kit.items.length} items</span>
         <span className="flex items-center gap-1 text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity">
           View Kit <ArrowRight className="h-3 w-3" />
         </span>

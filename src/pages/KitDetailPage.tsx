@@ -1,12 +1,15 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Users, TrendingUp, ExternalLink, CheckCircle2, Lightbulb } from "lucide-react";
+import { ArrowLeft, Clock, Users, TrendingUp, CheckCircle2, Lightbulb, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getKitById } from "@/data/kits";
+import { useState } from "react";
 
 export default function KitDetailPage() {
   const { id } = useParams();
   const kit = getKitById(id || "");
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState(false);
 
   if (!kit) {
     return (
@@ -18,6 +21,26 @@ export default function KitDetailPage() {
       </div>
     );
   }
+
+  const toggleItem = (name: string) => {
+    setCheckedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const progress = kit.items.length > 0
+    ? Math.round((checkedItems.size / kit.items.length) * 100)
+    : 0;
+
+  const handleCopyList = () => {
+    const text = kit.items.map((item) => `• ${item.name} — ${item.purpose}`).join("\n");
+    navigator.clipboard.writeText(`${kit.name}\n\n${text}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -43,47 +66,66 @@ export default function KitDetailPage() {
           </div>
         </div>
 
-        {/* Price card */}
+        {/* Progress card */}
         <div className="rounded-lg border bg-card p-6">
-          <p className="text-sm text-muted-foreground mb-1">Total Kit Cost</p>
-          <p className="font-serif text-3xl mb-4">${kit.totalCost}</p>
-          <p className="text-xs text-muted-foreground mb-6">{kit.items.length} items · Individual links below</p>
-          <Button className="w-full mb-3" size="lg">
-            Get This Kit <ExternalLink className="ml-2 h-4 w-4" />
+          <p className="text-sm text-muted-foreground mb-1">Your Progress</p>
+          <p className="font-serif text-3xl mb-2">{progress}%</p>
+          <div className="w-full bg-muted rounded-full h-2 mb-3">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground mb-6">
+            {checkedItems.size} of {kit.items.length} items checked off
+          </p>
+          <Button onClick={handleCopyList} variant="outline" className="w-full" size="sm">
+            {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+            {copied ? "Copied!" : "Copy Item List"}
           </Button>
-          <p className="text-xs text-muted-foreground text-center">Links to recommended retailers</p>
         </div>
       </div>
 
       {/* Items */}
       <section className="mb-12">
-        <h2 className="font-serif text-2xl mb-6">What's Included</h2>
+        <h2 className="font-serif text-2xl mb-6">What You'll Need</h2>
         <div className="space-y-4">
-          {kit.items.map((item, i) => (
-            <div
-              key={item.name}
-              className="rounded-lg border bg-card p-5 animate-fade-in"
-              style={{ animationDelay: `${i * 0.1}s` }}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">{item.purpose}</p>
+          {kit.items.map((item, i) => {
+            const isChecked = checkedItems.has(item.name);
+            return (
+              <div
+                key={item.name}
+                className={`rounded-lg border p-5 animate-fade-in cursor-pointer transition-colors ${
+                  isChecked ? "bg-primary/5 border-primary/30" : "bg-card"
+                }`}
+                style={{ animationDelay: `${i * 0.1}s` }}
+                onClick={() => toggleItem(item.name)}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2
+                      className={`h-5 w-5 mt-0.5 shrink-0 transition-colors ${
+                        isChecked ? "text-primary" : "text-muted-foreground/30"
+                      }`}
+                    />
+                    <div>
+                      <h3 className={`font-medium ${isChecked ? "line-through text-muted-foreground" : ""}`}>
+                        {item.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">{item.purpose}</p>
+                    </div>
                   </div>
                 </div>
-                <span className="text-sm font-semibold shrink-0">${item.price}</span>
-              </div>
-              <div className="ml-8 mt-3 flex items-start gap-2 p-3 rounded-md bg-primary/5">
-                <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-xs font-medium text-primary mb-0.5">Why This Works</p>
-                  <p className="text-xs text-muted-foreground">{item.behavioralPrinciple}</p>
+                <div className="ml-8 mt-3 flex items-start gap-2 p-3 rounded-md bg-primary/5">
+                  <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-primary mb-0.5">Why This Works</p>
+                    <p className="text-xs text-muted-foreground">{item.behavioralPrinciple}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
