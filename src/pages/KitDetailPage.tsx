@@ -1,14 +1,15 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Users, TrendingUp, CheckCircle2, Lightbulb, Copy, Check } from "lucide-react";
+import { ArrowLeft, Clock, Users, TrendingUp, CheckCircle2, Lightbulb, Copy, Check, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getKitById } from "@/data/kits";
+import { useProfile } from "@/context/ProfileContext";
 import { useState } from "react";
 
 export default function KitDetailPage() {
   const { id } = useParams();
   const kit = getKitById(id || "");
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const { toggleItem, isItemChecked, getKitProgress, startKit, isKitActive } = useProfile();
   const [copied, setCopied] = useState(false);
 
   if (!kit) {
@@ -22,18 +23,8 @@ export default function KitDetailPage() {
     );
   }
 
-  const toggleItem = (name: string) => {
-    setCheckedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
-
-  const progress = kit.items.length > 0
-    ? Math.round((checkedItems.size / kit.items.length) * 100)
-    : 0;
+  const progress = getKitProgress(kit.id, kit.items.length);
+  const active = isKitActive(kit.id);
 
   const handleCopyList = () => {
     const text = kit.items.map((item) => `• ${item.name} — ${item.purpose}`).join("\n");
@@ -76,9 +67,14 @@ export default function KitDetailPage() {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground mb-6">
-            {checkedItems.size} of {kit.items.length} items checked off
+          <p className="text-xs text-muted-foreground mb-4">
+            {kit.items.filter((item) => isItemChecked(kit.id, item.name)).length} of {kit.items.length} items checked off
           </p>
+          {!active && (
+            <Button onClick={() => startKit(kit.id)} className="w-full mb-3" size="sm">
+              <Play className="mr-2 h-4 w-4" /> Start This Kit
+            </Button>
+          )}
           <Button onClick={handleCopyList} variant="outline" className="w-full" size="sm">
             {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
             {copied ? "Copied!" : "Copy Item List"}
@@ -91,25 +87,25 @@ export default function KitDetailPage() {
         <h2 className="font-serif text-2xl mb-6">What You'll Need</h2>
         <div className="space-y-4">
           {kit.items.map((item, i) => {
-            const isChecked = checkedItems.has(item.name);
+            const checked = isItemChecked(kit.id, item.name);
             return (
               <div
                 key={item.name}
                 className={`rounded-lg border p-5 animate-fade-in cursor-pointer transition-colors ${
-                  isChecked ? "bg-primary/5 border-primary/30" : "bg-card"
+                  checked ? "bg-primary/5 border-primary/30" : "bg-card"
                 }`}
                 style={{ animationDelay: `${i * 0.1}s` }}
-                onClick={() => toggleItem(item.name)}
+                onClick={() => toggleItem(kit.id, item.name)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-start gap-3">
                     <CheckCircle2
                       className={`h-5 w-5 mt-0.5 shrink-0 transition-colors ${
-                        isChecked ? "text-primary" : "text-muted-foreground/30"
+                        checked ? "text-primary" : "text-muted-foreground/30"
                       }`}
                     />
                     <div>
-                      <h3 className={`font-medium ${isChecked ? "line-through text-muted-foreground" : ""}`}>
+                      <h3 className={`font-medium ${checked ? "line-through text-muted-foreground" : ""}`}>
                         {item.name}
                       </h3>
                       <p className="text-sm text-muted-foreground">{item.purpose}</p>
